@@ -616,446 +616,460 @@ export default function ImportExportPanel() {
             <div>
               <Label htmlFor="import-file">選擇檔案</Label>
               <div className="mt-2">
-                <Input
-                  id="import-file"
-                  type="file"
-                  accept=".csv"
-                  multiple
-                  onChange={handleMultiFileImport}
-                  disabled={importing}
-                  className="hidden"
-                />
-                <Button
-                  onClick={() => document.getElementById("import-file")?.click()}
-                  disabled={importing}
-                  className="w-full h-12 text-base font-medium border-2 border-dashed border-gray-300 hover:border-gray-400 bg-white hover:bg-gray-50 text-gray-700 hover:text-gray-800 transition-all duration-200 active:scale-95 active:bg-gray-100"
-                  variant="outline"
+                <div
+                  onDragOver={e => { e.preventDefault(); e.stopPropagation(); }}
+                  onDrop={e => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    const files = e.dataTransfer.files;
+                    if (files && files.length > 0) {
+                      // 建立一個假的 event 給 handleMultiFileImport
+                      const fakeEvent = { target: { files } } as React.ChangeEvent<HTMLInputElement>;
+                      handleMultiFileImport(fakeEvent);
+                    }
+                  }}
                 >
-                  {importing ? (
-                    <>
-                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-900 mr-2"></div>
-                      匯入中...
-                    </>
-                  ) : (
-                    <>
-                      <Upload className="h-5 w-5 mr-2" />
-                      點擊選擇檔案或拖拽檔案到此處
-                    </>
-                  )}
+                  <Input
+                    id="import-file"
+                    type="file"
+                    accept=".csv"
+                    multiple
+                    onChange={handleMultiFileImport}
+                    disabled={importing}
+                    className="hidden"
+                  />
+                  <Button
+                    onClick={() => document.getElementById("import-file")?.click()}
+                    disabled={importing}
+                    className="w-full h-12 text-base font-medium border-2 border-dashed border-gray-300 hover:border-gray-400 bg-white hover:bg-gray-50 text-gray-700 hover:text-gray-800 transition-all duration-200 active:scale-95 active:bg-gray-100"
+                    variant="outline"
+                  >
+                    {importing ? (
+                      <>
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-900 mr-2"></div>
+                        匯入中...
+                      </>
+                    ) : (
+                      <>
+                        <Upload className="h-5 w-5 mr-2" />
+                        點擊選擇檔案或拖拽檔案到此處
+                      </>
+                    )}
+                  </Button>
+                </div>
+                <p className="text-xs text-gray-500 mt-2">僅支援 CSV 格式，可同時選擇多個檔案，系統會自動檢測重複資料和缺失教練</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* 範本下載區域 */}
+          <div className="border-t pt-4">
+            <h4 className="font-medium mb-4">下載匯入範本</h4>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <Button
+                variant="outline"
+                onClick={() => downloadTemplate("coaches")}
+                className="flex items-center gap-2 h-12 border-2 hover:border-blue-300 hover:bg-blue-50 transition-all duration-200 active:scale-95"
+              >
+                <Users className="h-4 w-4" />
+                教練範本
+              </Button>
+
+              <Button
+                variant="outline"
+                onClick={() => downloadTemplate("timeslots")}
+                className="flex items-center gap-2 h-12 border-2 hover:border-green-300 hover:bg-green-50 transition-all duration-200 active:scale-95"
+              >
+                <Calendar className="h-4 w-4" />
+                時段範本
+              </Button>
+
+              <Button
+                variant="outline"
+                onClick={() => downloadTemplate("assignments")}
+                className="flex items-center gap-2 h-12 border-2 hover:border-purple-300 hover:bg-purple-50 transition-all duration-200 active:scale-95"
+              >
+                <FileSpreadsheet className="h-4 w-4" />
+                派案範本
+              </Button>
+            </div>
+          </div>
+
+          {/* 匯入說明 */}
+          <div className="bg-blue-50 p-4 rounded-lg">
+            <h5 className="font-medium text-blue-800 mb-2 flex items-center gap-2">
+              <CheckCircle className="h-4 w-4" />
+              匯入說明
+            </h5>
+            <ul className="text-sm text-blue-700 space-y-1">
+              <li>• 請先下載對應的範本檔案</li>
+              <li>• 按照範本格式填寫資料</li>
+              <li>• 僅支援 CSV 格式，可同時選擇多個檔案</li>
+              <li>• 系統會自動檢測重複資料並提供處理選項</li>
+              <li>• 匯入時段時，若教練不存在會詢問是否新增</li>
+              <li>• 匯入資料不會覆蓋現有資料，而是追加新增</li>
+              <li>• 匯入後會自動重新載入頁面顯示新資料</li>
+            </ul>
+          </div>
+        </CardContent>
+
+        {/* 缺失教練處理對話框 */}
+        <Dialog open={showMissingCoachDialog} onOpenChange={setShowMissingCoachDialog}>
+          <DialogContent className="max-w-2xl max-h-[80vh] bg-white text-black">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2 text-black">
+                <UserPlus className="h-5 w-5 text-blue-500" />
+                發現缺失教練
+              </DialogTitle>
+              <DialogDescription className="text-gray-600">
+                系統檢測到 {missingCoaches.length} 位教練不存在，請選擇要新增的教練：
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="space-y-4">
+              <div className="flex gap-2 mb-4">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => setSelectedMissingCoaches(missingCoaches.map((c) => c.name))}
+                  className="bg-transparent"
+                >
+                  全選
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => setSelectedMissingCoaches([])}
+                  className="bg-transparent"
+                >
+                  取消全選
                 </Button>
               </div>
-              <p className="text-xs text-gray-500 mt-2">僅支援 CSV 格式，可同時選擇多個檔案，系統會自動檢測重複資料和缺失教練</p>
-            </div>
-          </div>
-        </div>
 
-        {/* 範本下載區域 */}
-        <div className="border-t pt-4">
-          <h4 className="font-medium mb-4">下載匯入範本</h4>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <Button
-              variant="outline"
-              onClick={() => downloadTemplate("coaches")}
-              className="flex items-center gap-2 h-12 border-2 hover:border-blue-300 hover:bg-blue-50 transition-all duration-200 active:scale-95"
-            >
-              <Users className="h-4 w-4" />
-              教練範本
-            </Button>
-
-            <Button
-              variant="outline"
-              onClick={() => downloadTemplate("timeslots")}
-              className="flex items-center gap-2 h-12 border-2 hover:border-green-300 hover:bg-green-50 transition-all duration-200 active:scale-95"
-            >
-              <Calendar className="h-4 w-4" />
-              時段範本
-            </Button>
-
-            <Button
-              variant="outline"
-              onClick={() => downloadTemplate("assignments")}
-              className="flex items-center gap-2 h-12 border-2 hover:border-purple-300 hover:bg-purple-50 transition-all duration-200 active:scale-95"
-            >
-              <FileSpreadsheet className="h-4 w-4" />
-              派案範本
-            </Button>
-          </div>
-        </div>
-
-        {/* 匯入說明 */}
-        <div className="bg-blue-50 p-4 rounded-lg">
-          <h5 className="font-medium text-blue-800 mb-2 flex items-center gap-2">
-            <CheckCircle className="h-4 w-4" />
-            匯入說明
-          </h5>
-          <ul className="text-sm text-blue-700 space-y-1">
-            <li>• 請先下載對應的範本檔案</li>
-            <li>• 按照範本格式填寫資料</li>
-            <li>• 僅支援 CSV 格式，可同時選擇多個檔案</li>
-            <li>• 系統會自動檢測重複資料並提供處理選項</li>
-            <li>• 匯入時段時，若教練不存在會詢問是否新增</li>
-            <li>• 匯入資料不會覆蓋現有資料，而是追加新增</li>
-            <li>• 匯入後會自動重新載入頁面顯示新資料</li>
-          </ul>
-        </div>
-      </CardContent>
-
-      {/* 缺失教練處理對話框 */}
-      <Dialog open={showMissingCoachDialog} onOpenChange={setShowMissingCoachDialog}>
-        <DialogContent className="max-w-2xl max-h-[80vh] bg-white text-black">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 text-black">
-              <UserPlus className="h-5 w-5 text-blue-500" />
-              發現缺失教練
-            </DialogTitle>
-            <DialogDescription className="text-gray-600">
-              系統檢測到 {missingCoaches.length} 位教練不存在，請選擇要新增的教練：
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="space-y-4">
-            <div className="flex gap-2 mb-4">
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => setSelectedMissingCoaches(missingCoaches.map((c) => c.name))}
-                className="bg-transparent"
-              >
-                全選
-              </Button>
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => setSelectedMissingCoaches([])}
-                className="bg-transparent"
-              >
-                取消全選
-              </Button>
-            </div>
-
-            <ScrollArea className="h-96">
-              <div className="space-y-3">
-                {missingCoaches.map((coach, index) => (
-                  <Card key={coach.name} className="border-2 border-blue-200">
-                    <CardContent className="pt-4">
-                      <div className="flex items-start gap-3">
-                        <Checkbox
-                          checked={selectedMissingCoaches.includes(coach.name)}
-                          onCheckedChange={(checked) => handleMissingCoachSelection(coach.name, checked as boolean)}
-                          className="mt-1"
-                        />
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2 mb-2">
-                            <Badge className="bg-blue-100 text-blue-800">教練 #{index + 1}</Badge>
-                            <h4 className="font-medium text-lg">{coach.name}</h4>
-                          </div>
-                          <div className="text-sm text-gray-600">
-                            <div className="mb-2">
-                              <strong>相關時段數量：</strong> {coach.timeslots.length} 個
+              <ScrollArea className="h-96">
+                <div className="space-y-3">
+                  {missingCoaches.map((coach, index) => (
+                    <Card key={coach.name} className="border-2 border-blue-200">
+                      <CardContent className="pt-4">
+                        <div className="flex items-start gap-3">
+                          <Checkbox
+                            checked={selectedMissingCoaches.includes(coach.name)}
+                            onCheckedChange={(checked) => handleMissingCoachSelection(coach.name, checked as boolean)}
+                            className="mt-1"
+                          />
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2 mb-2">
+                              <Badge className="bg-blue-100 text-blue-800">教練 #{index + 1}</Badge>
+                              <h4 className="font-medium text-lg">{coach.name}</h4>
                             </div>
-                            <div className="space-y-1">
-                              <strong>時段預覽：</strong>
-                              {coach.timeslots.slice(0, 3).map((slot, idx) => (
-                                <div key={idx} className="ml-2 text-xs">
-                                  • {formatDateTime(slot.start_time)} - {formatDateTime(slot.end_time)}
-                                </div>
-                              ))}
-                              {coach.timeslots.length > 3 && (
-                                <div className="ml-2 text-xs text-gray-500">
-                                  ...還有 {coach.timeslots.length - 3} 個時段
-                                </div>
+                            <div className="text-sm text-gray-600">
+                              <div className="mb-2">
+                                <strong>相關時段數量：</strong> {coach.timeslots.length} 個
+                              </div>
+                              <div className="space-y-1">
+                                <strong>時段預覽：</strong>
+                                {coach.timeslots.slice(0, 3).map((slot, idx) => (
+                                  <div key={idx} className="ml-2 text-xs">
+                                    • {formatDateTime(slot.start_time)} - {formatDateTime(slot.end_time)}
+                                  </div>
+                                ))}
+                                {coach.timeslots.length > 3 && (
+                                  <div className="ml-2 text-xs text-gray-500">
+                                    ...還有 {coach.timeslots.length - 3} 個時段
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              </ScrollArea>
+
+              <div className="flex justify-end gap-2 pt-4 border-t">
+                <Button variant="outline" onClick={() => setShowMissingCoachDialog(false)} className="bg-transparent">
+                  取消匯入
+                </Button>
+                <Button
+                  onClick={handleCreateMissingCoaches}
+                  disabled={selectedMissingCoaches.length === 0}
+                  style={{ backgroundColor: "#E31E24", color: "white" }}
+                >
+                  新增選中教練 ({selectedMissingCoaches.length})
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        {/* 重複資料處理對話框 */}
+        <Dialog open={showConflictDialog} onOpenChange={setShowConflictDialog}>
+          <DialogContent className="max-w-4xl max-h-[80vh] bg-white text-black">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2 text-black">
+                <AlertTriangle className="h-5 w-5 text-orange-500" />
+                發現重複資料
+              </DialogTitle>
+              <DialogDescription className="text-gray-600">
+                系統檢測到 {duplicates.length} 項重複資料，請選擇處理方式：
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="space-y-4">
+              <div className="flex gap-2 mb-4">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => {
+                    const newResolutions: ConflictResolution = {}
+                    duplicates.forEach((dup) => {
+                      newResolutions[dup.key] = "replace"
+                    })
+                    setConflictResolutions(newResolutions)
+                  }}
+                  className="bg-transparent"
+                >
+                  全部替換
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => {
+                    const newResolutions: ConflictResolution = {}
+                    duplicates.forEach((dup) => {
+                      newResolutions[dup.key] = "keep"
+                    })
+                    setConflictResolutions(newResolutions)
+                  }}
+                  className="bg-transparent"
+                >
+                  全部保留
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => {
+                    const newResolutions: ConflictResolution = {}
+                    duplicates.forEach((dup) => {
+                      newResolutions[dup.key] = "skip"
+                    })
+                    setConflictResolutions(newResolutions)
+                  }}
+                  className="bg-transparent"
+                >
+                  全部跳過
+                </Button>
+              </div>
+
+              <ScrollArea className="h-96">
+                <div className="space-y-4">
+                  {duplicates.map((duplicate, index) => (
+                    <Card key={duplicate.key} className="border-2 border-orange-200">
+                      <CardContent className="pt-4">
+                        <div className="flex justify-between items-start mb-4">
+                          <div>
+                            <Badge className="bg-orange-100 text-orange-800 mb-2">
+                              {getTypeLabel(duplicate.type)} #{index + 1}
+                            </Badge>
+                            <h4 className="font-medium">重複項目處理</h4>
+                          </div>
+                          <div className="flex gap-2">
+                            <Button
+                              size="sm"
+                              variant={conflictResolutions[duplicate.key] === "keep" ? "default" : "outline"}
+                              onClick={() => handleConflictResolution(duplicate.key, "keep")}
+                              className={
+                                conflictResolutions[duplicate.key] === "keep"
+                                  ? "bg-blue-500 text-white"
+                                  : "bg-transparent"
+                              }
+                            >
+                              保留現有
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant={conflictResolutions[duplicate.key] === "replace" ? "default" : "outline"}
+                              onClick={() => handleConflictResolution(duplicate.key, "replace")}
+                              className={
+                                conflictResolutions[duplicate.key] === "replace"
+                                  ? "bg-green-500 text-white"
+                                  : "bg-transparent"
+                              }
+                            >
+                              替換為新
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant={conflictResolutions[duplicate.key] === "skip" ? "default" : "outline"}
+                              onClick={() => handleConflictResolution(duplicate.key, "skip")}
+                              className={
+                                conflictResolutions[duplicate.key] === "skip"
+                                  ? "bg-gray-500 text-white"
+                                  : "bg-transparent"
+                              }
+                            >
+                              跳過
+                            </Button>
+                          </div>
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          {/* 現有資料 */}
+                          <div className="bg-blue-50 p-3 rounded-lg">
+                            <h5 className="font-medium text-blue-800 mb-2 flex items-center gap-2">
+                              <Check className="h-4 w-4" />
+                              現有資料
+                            </h5>
+                            <div className="text-sm space-y-1">
+                              {duplicate.type === "coach" && (
+                                <>
+                                  <div>
+                                    <strong>姓名:</strong> {duplicate.existing.name}
+                                  </div>
+                                  <div>
+                                    <strong>Email:</strong> {duplicate.existing.email || "無"}
+                                  </div>
+                                  <div>
+                                    <strong>狀態:</strong> {duplicate.existing.status}
+                                  </div>
+                                  <div>
+                                    <strong>建立時間:</strong> {formatDateTime(duplicate.existing.created_at)}
+                                  </div>
+                                </>
+                              )}
+                              {duplicate.type === "timeslot" && (
+                                <>
+                                  <div>
+                                    <strong>教練:</strong> {duplicate.existing.coach_name}
+                                  </div>
+                                  <div>
+                                    <strong>開始:</strong> {formatDateTime(duplicate.existing.start_time)}
+                                  </div>
+                                  <div>
+                                    <strong>結束:</strong> {formatDateTime(duplicate.existing.end_time)}
+                                  </div>
+                                  <div>
+                                    <strong>狀態:</strong> {duplicate.existing.status}
+                                  </div>
+                                </>
+                              )}
+                              {duplicate.type === "assignment" && (
+                                <>
+                                  <div>
+                                    <strong>教練:</strong> {duplicate.existing.coach_name}
+                                  </div>
+                                  <div>
+                                    <strong>申請人:</strong> {duplicate.existing.client_name}
+                                  </div>
+                                  <div>
+                                    <strong>時間:</strong> {formatDateTime(duplicate.existing.start_time)}
+                                  </div>
+                                  <div>
+                                    <strong>狀態:</strong> {duplicate.existing.status}
+                                  </div>
+                                </>
+                              )}
+                            </div>
+                          </div>
+
+                          {/* 匯入資料 */}
+                          <div className="bg-green-50 p-3 rounded-lg">
+                            <h5 className="font-medium text-green-800 mb-2 flex items-center gap-2">
+                              <Upload className="h-4 w-4" />
+                              匯入資料
+                            </h5>
+                            <div className="text-sm space-y-1">
+                              {duplicate.type === "coach" && (
+                                <>
+                                  <div>
+                                    <strong>姓名:</strong> {duplicate.importing.name}
+                                  </div>
+                                  <div>
+                                    <strong>Email:</strong> {duplicate.importing.email || "無"}
+                                  </div>
+                                  <div>
+                                    <strong>狀態:</strong> {duplicate.importing.status}
+                                  </div>
+                                  <div>
+                                    <strong>簡歷:</strong> {duplicate.importing.bio || "無"}
+                                  </div>
+                                </>
+                              )}
+                              {duplicate.type === "timeslot" && (
+                                <>
+                                  <div>
+                                    <strong>教練:</strong> {duplicate.importing.coach_name}
+                                  </div>
+                                  <div>
+                                    <strong>開始:</strong> {formatDateTime(duplicate.importing.start_time)}
+                                  </div>
+                                  <div>
+                                    <strong>結束:</strong> {formatDateTime(duplicate.importing.end_time)}
+                                  </div>
+                                  <div>
+                                    <strong>狀態:</strong> {duplicate.importing.status}
+                                  </div>
+                                </>
+                              )}
+                              {duplicate.type === "assignment" && (
+                                <>
+                                  <div>
+                                    <strong>教練:</strong> {duplicate.importing.coach_name}
+                                  </div>
+                                  <div>
+                                    <strong>申請人:</strong> {duplicate.importing.client_name}
+                                  </div>
+                                  <div>
+                                    <strong>時間:</strong> {formatDateTime(duplicate.importing.start_time)}
+                                  </div>
+                                  <div>
+                                    <strong>議題:</strong> {duplicate.importing.topic}
+                                  </div>
+                                </>
                               )}
                             </div>
                           </div>
                         </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-            </ScrollArea>
 
-            <div className="flex justify-end gap-2 pt-4 border-t">
-              <Button variant="outline" onClick={() => setShowMissingCoachDialog(false)} className="bg-transparent">
-                取消匯入
-              </Button>
-              <Button
-                onClick={handleCreateMissingCoaches}
-                disabled={selectedMissingCoaches.length === 0}
-                style={{ backgroundColor: "#E31E24", color: "white" }}
-              >
-                新增選中教練 ({selectedMissingCoaches.length})
-              </Button>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
-
-      {/* 重複資料處理對話框 */}
-      <Dialog open={showConflictDialog} onOpenChange={setShowConflictDialog}>
-        <DialogContent className="max-w-4xl max-h-[80vh] bg-white text-black">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 text-black">
-              <AlertTriangle className="h-5 w-5 text-orange-500" />
-              發現重複資料
-            </DialogTitle>
-            <DialogDescription className="text-gray-600">
-              系統檢測到 {duplicates.length} 項重複資料，請選擇處理方式：
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="space-y-4">
-            <div className="flex gap-2 mb-4">
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => {
-                  const newResolutions: ConflictResolution = {}
-                  duplicates.forEach((dup) => {
-                    newResolutions[dup.key] = "replace"
-                  })
-                  setConflictResolutions(newResolutions)
-                }}
-                className="bg-transparent"
-              >
-                全部替換
-              </Button>
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => {
-                  const newResolutions: ConflictResolution = {}
-                  duplicates.forEach((dup) => {
-                    newResolutions[dup.key] = "keep"
-                  })
-                  setConflictResolutions(newResolutions)
-                }}
-                className="bg-transparent"
-              >
-                全部保留
-              </Button>
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => {
-                  const newResolutions: ConflictResolution = {}
-                  duplicates.forEach((dup) => {
-                    newResolutions[dup.key] = "skip"
-                  })
-                  setConflictResolutions(newResolutions)
-                }}
-                className="bg-transparent"
-              >
-                全部跳過
-              </Button>
-            </div>
-
-            <ScrollArea className="h-96">
-              <div className="space-y-4">
-                {duplicates.map((duplicate, index) => (
-                  <Card key={duplicate.key} className="border-2 border-orange-200">
-                    <CardContent className="pt-4">
-                      <div className="flex justify-between items-start mb-4">
-                        <div>
-                          <Badge className="bg-orange-100 text-orange-800 mb-2">
-                            {getTypeLabel(duplicate.type)} #{index + 1}
-                          </Badge>
-                          <h4 className="font-medium">重複項目處理</h4>
-                        </div>
-                        <div className="flex gap-2">
-                          <Button
-                            size="sm"
-                            variant={conflictResolutions[duplicate.key] === "keep" ? "default" : "outline"}
-                            onClick={() => handleConflictResolution(duplicate.key, "keep")}
-                            className={
-                              conflictResolutions[duplicate.key] === "keep"
-                                ? "bg-blue-500 text-white"
-                                : "bg-transparent"
-                            }
-                          >
-                            保留現有
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant={conflictResolutions[duplicate.key] === "replace" ? "default" : "outline"}
-                            onClick={() => handleConflictResolution(duplicate.key, "replace")}
-                            className={
-                              conflictResolutions[duplicate.key] === "replace"
-                                ? "bg-green-500 text-white"
-                                : "bg-transparent"
-                            }
-                          >
-                            替換為新
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant={conflictResolutions[duplicate.key] === "skip" ? "default" : "outline"}
-                            onClick={() => handleConflictResolution(duplicate.key, "skip")}
-                            className={
-                              conflictResolutions[duplicate.key] === "skip"
-                                ? "bg-gray-500 text-white"
-                                : "bg-transparent"
-                            }
-                          >
-                            跳過
-                          </Button>
-                        </div>
-                      </div>
-
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        {/* 現有資料 */}
-                        <div className="bg-blue-50 p-3 rounded-lg">
-                          <h5 className="font-medium text-blue-800 mb-2 flex items-center gap-2">
-                            <Check className="h-4 w-4" />
-                            現有資料
-                          </h5>
-                          <div className="text-sm space-y-1">
-                            {duplicate.type === "coach" && (
-                              <>
-                                <div>
-                                  <strong>姓名:</strong> {duplicate.existing.name}
-                                </div>
-                                <div>
-                                  <strong>Email:</strong> {duplicate.existing.email || "無"}
-                                </div>
-                                <div>
-                                  <strong>狀態:</strong> {duplicate.existing.status}
-                                </div>
-                                <div>
-                                  <strong>建立時間:</strong> {formatDateTime(duplicate.existing.created_at)}
-                                </div>
-                              </>
+                        {/* 選擇狀態指示 */}
+                        {conflictResolutions[duplicate.key] && (
+                          <div className="mt-3 p-2 rounded-lg text-sm font-medium text-center">
+                            {conflictResolutions[duplicate.key] === "keep" && (
+                              <div className="bg-blue-100 text-blue-800">將保留現有資料</div>
                             )}
-                            {duplicate.type === "timeslot" && (
-                              <>
-                                <div>
-                                  <strong>教練:</strong> {duplicate.existing.coach_name}
-                                </div>
-                                <div>
-                                  <strong>開始:</strong> {formatDateTime(duplicate.existing.start_time)}
-                                </div>
-                                <div>
-                                  <strong>結束:</strong> {formatDateTime(duplicate.existing.end_time)}
-                                </div>
-                                <div>
-                                  <strong>狀態:</strong> {duplicate.existing.status}
-                                </div>
-                              </>
+                            {conflictResolutions[duplicate.key] === "replace" && (
+                              <div className="bg-green-100 text-green-800">將替換為匯入資料</div>
                             )}
-                            {duplicate.type === "assignment" && (
-                              <>
-                                <div>
-                                  <strong>教練:</strong> {duplicate.existing.coach_name}
-                                </div>
-                                <div>
-                                  <strong>申請人:</strong> {duplicate.existing.client_name}
-                                </div>
-                                <div>
-                                  <strong>時間:</strong> {formatDateTime(duplicate.existing.start_time)}
-                                </div>
-                                <div>
-                                  <strong>狀態:</strong> {duplicate.existing.status}
-                                </div>
-                              </>
+                            {conflictResolutions[duplicate.key] === "skip" && (
+                              <div className="bg-gray-100 text-gray-800">將跳過此項目</div>
                             )}
                           </div>
-                        </div>
+                        )}
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              </ScrollArea>
 
-                        {/* 匯入資料 */}
-                        <div className="bg-green-50 p-3 rounded-lg">
-                          <h5 className="font-medium text-green-800 mb-2 flex items-center gap-2">
-                            <Upload className="h-4 w-4" />
-                            匯入資料
-                          </h5>
-                          <div className="text-sm space-y-1">
-                            {duplicate.type === "coach" && (
-                              <>
-                                <div>
-                                  <strong>姓名:</strong> {duplicate.importing.name}
-                                </div>
-                                <div>
-                                  <strong>Email:</strong> {duplicate.importing.email || "無"}
-                                </div>
-                                <div>
-                                  <strong>狀態:</strong> {duplicate.importing.status}
-                                </div>
-                                <div>
-                                  <strong>簡歷:</strong> {duplicate.importing.bio || "無"}
-                                </div>
-                              </>
-                            )}
-                            {duplicate.type === "timeslot" && (
-                              <>
-                                <div>
-                                  <strong>教練:</strong> {duplicate.importing.coach_name}
-                                </div>
-                                <div>
-                                  <strong>開始:</strong> {formatDateTime(duplicate.importing.start_time)}
-                                </div>
-                                <div>
-                                  <strong>結束:</strong> {formatDateTime(duplicate.importing.end_time)}
-                                </div>
-                                <div>
-                                  <strong>狀態:</strong> {duplicate.importing.status}
-                                </div>
-                              </>
-                            )}
-                            {duplicate.type === "assignment" && (
-                              <>
-                                <div>
-                                  <strong>教練:</strong> {duplicate.importing.coach_name}
-                                </div>
-                                <div>
-                                  <strong>申請人:</strong> {duplicate.importing.client_name}
-                                </div>
-                                <div>
-                                  <strong>時間:</strong> {formatDateTime(duplicate.importing.start_time)}
-                                </div>
-                                <div>
-                                  <strong>議題:</strong> {duplicate.importing.topic}
-                                </div>
-                              </>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* 選擇狀態指示 */}
-                      {conflictResolutions[duplicate.key] && (
-                        <div className="mt-3 p-2 rounded-lg text-sm font-medium text-center">
-                          {conflictResolutions[duplicate.key] === "keep" && (
-                            <div className="bg-blue-100 text-blue-800">將保留現有資料</div>
-                          )}
-                          {conflictResolutions[duplicate.key] === "replace" && (
-                            <div className="bg-green-100 text-green-800">將替換為匯入資料</div>
-                          )}
-                          {conflictResolutions[duplicate.key] === "skip" && (
-                            <div className="bg-gray-100 text-gray-800">將跳過此項目</div>
-                          )}
-                        </div>
-                      )}
-                    </CardContent>
-                  </Card>
-                ))}
+              <div className="flex justify-end gap-2 pt-4 border-t">
+                <Button variant="outline" onClick={() => setShowConflictDialog(false)} className="bg-transparent">
+                  取消匯入
+                </Button>
+                <Button
+                  onClick={handleResolveConflicts}
+                  disabled={Object.keys(conflictResolutions).length !== duplicates.length}
+                  style={{ backgroundColor: "#E31E24", color: "white" }}
+                >
+                  確認處理 ({Object.keys(conflictResolutions).length}/{duplicates.length})
+                </Button>
               </div>
-            </ScrollArea>
-
-            <div className="flex justify-end gap-2 pt-4 border-t">
-              <Button variant="outline" onClick={() => setShowConflictDialog(false)} className="bg-transparent">
-                取消匯入
-              </Button>
-              <Button
-                onClick={handleResolveConflicts}
-                disabled={Object.keys(conflictResolutions).length !== duplicates.length}
-                style={{ backgroundColor: "#E31E24", color: "white" }}
-              >
-                確認處理 ({Object.keys(conflictResolutions).length}/{duplicates.length})
-              </Button>
             </div>
-          </div>
-        </DialogContent>
-      </Dialog>
-    </Card>
-  )
-}
+          </DialogContent>
+        </Dialog>
+      </Card>
+    )
+  }

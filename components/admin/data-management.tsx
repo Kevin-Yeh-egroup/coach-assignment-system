@@ -66,6 +66,60 @@ export default function DataManagement() {
     status: "available",
   })
 
+  // 1. 批次選取模式 state
+  const [batchMode, setBatchMode] = useState(false)
+  const [batchSelectedSlots, setBatchSelectedSlots] = useState<number[]>([])
+
+  const toggleBatchMode = () => {
+    setBatchMode((prev) => !prev)
+    setBatchSelectedSlots([])
+  }
+
+  const handleBatchSelectAll = () => {
+    if (batchSelectedSlots.length === filteredSlots.length) {
+      setBatchSelectedSlots([])
+    } else {
+      setBatchSelectedSlots(filteredSlots.map((slot) => slot.id))
+    }
+  }
+
+  const handleBatchSelectSlot = (slotId: number) => {
+    setBatchSelectedSlots((prev) =>
+      prev.includes(slotId) ? prev.filter((id) => id !== slotId) : [...prev, slotId]
+    )
+  }
+
+  const handleBatchDeleteAll = () => {
+    if (batchSelectedSlots.length === 0) {
+      alert("請選擇要刪除的時段")
+      return
+    }
+    const selectedTimes = filteredSlots
+      .filter((slot) => batchSelectedSlots.includes(slot.id))
+      .map(
+        (slot) => `${slot.coachName} - ${format(new Date(slot.start_time), "MM/dd HH:mm")} - ${format(new Date(slot.end_time), "HH:mm")}`
+      )
+      .join("\n")
+    if (!window.confirm(`此操作需管理員權限！\n\n確定要刪除以下 ${batchSelectedSlots.length} 個時段嗎？\n\n${selectedTimes}\n\n此操作無法復原。`)) {
+      return
+    }
+    // 從全域時段資料中刪除
+    const globalTimeslots = JSON.parse(localStorage.getItem("timeslots") || "[]")
+    const updatedGlobalTimeslots = globalTimeslots.filter((slot: any) => !batchSelectedSlots.includes(slot.id))
+    localStorage.setItem("timeslots", JSON.stringify(updatedGlobalTimeslots))
+    // 從各教練的個人時段資料中刪除
+    coaches.forEach((coach) => {
+      const coachSlots = JSON.parse(localStorage.getItem(`coach_${coach.id}_timeslots`) || "[]")
+      const updatedCoachSlots = coachSlots.filter((slot: any) => !batchSelectedSlots.includes(slot.id))
+      localStorage.setItem(`coach_${coach.id}_timeslots`, JSON.stringify(updatedCoachSlots))
+    })
+    // 更新本地狀態
+    const updatedSlots = timeSlots.filter((slot) => !batchSelectedSlots.includes(slot.id))
+    setTimeSlots(updatedSlots)
+    setBatchSelectedSlots([])
+    alert(`已刪除 ${batchSelectedSlots.length} 個時段！`)
+  }
+
   useEffect(() => {
     fetchData()
   }, [])
@@ -508,141 +562,179 @@ export default function DataManagement() {
       </CardHeader>
 
       <CardContent>
-        <div className="space-y-4">
-          {/* 批量操作工具列 */}
-          <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-            <div className="flex items-center gap-4">
-              <div className="flex items-center gap-2">
-                <Checkbox checked={selectAll} onCheckedChange={handleSelectAll} className="w-5 h-5" />
-                <Label className="text-sm font-medium">
-                  {selectAll ? "取消全選" : "全選"}
-                  {selectedSlots.length > 0 && ` (已選 ${selectedSlots.length} 項)`}
-                </Label>
-              </div>
-            </div>
+        {/* 在頁面頂部加批次選取模式開關 */}
+        <div className="flex justify-end mb-2">
+          <Button
+            variant={batchMode ? "default" : "outline"}
+            onClick={toggleBatchMode}
+            className={batchMode ? "bg-red-600 text-white" : ""}
+          >
+            {batchMode ? "退出批次選取" : "批次選取模式"}
+          </Button>
+        </div>
 
-            {selectedSlots.length > 0 && (
-              <div className="flex items-center gap-2">
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={handleBatchDelete}
-                  className="text-red-600 hover:text-red-700 bg-transparent"
-                >
-                  <Trash2 className="h-4 w-4 mr-1" />
-                  批量刪除
-                </Button>
-              </div>
-            )}
+        {/* 在 CardContent 最上方加批次刪除工具列（僅 batchMode 顯示） */}
+        {batchMode && (
+          <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg mb-4">
+            <div className="flex items-center gap-4">
+              <Button size="sm" variant="outline" onClick={handleBatchSelectAll}>
+                {batchSelectedSlots.length === filteredSlots.length ? "取消全選" : "全選所有時段"}
+              </Button>
+              <span className="text-sm">已選 {batchSelectedSlots.length} 項</span>
+            </div>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={handleBatchDeleteAll}
+              className="text-red-600 hover:text-red-700 bg-transparent"
+              disabled={batchSelectedSlots.length === 0}
+            >
+              <Trash2 className="h-4 w-4 mr-1" />
+              批次刪除
+            </Button>
+          </div>
+        )}
+
+        {/* 批量操作工具列 */}
+        <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2">
+              <Checkbox checked={selectAll} onCheckedChange={handleSelectAll} className="w-5 h-5" />
+              <Label className="text-sm font-medium">
+                {selectAll ? "取消全選" : "全選"}
+                {selectedSlots.length > 0 && ` (已選 ${selectedSlots.length} 項)`}
+              </Label>
+            </div>
           </div>
 
-          {/* 時段列表 */}
-          {filteredSlots.length === 0 ? (
-            <div className="text-center py-8 text-gray-500">
-              {selectedCoach === "all" ? "沒有找到任何時段" : "該教練沒有時段資料"}
+          {selectedSlots.length > 0 && (
+            <div className="flex items-center gap-2">
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={handleBatchDelete}
+                className="text-red-600 hover:text-red-700 bg-transparent"
+              >
+                <Trash2 className="h-4 w-4 mr-1" />
+                批量刪除
+              </Button>
             </div>
-          ) : (
-            <div className="space-y-3">
-              {filteredSlots
-                .sort((a, b) => new Date(a.start_time).getTime() - new Date(b.start_time).getTime())
-                .map((slot) => (
-                  <Card key={slot.id} className="border-l-4 border-l-blue-500">
-                    <CardContent className="pt-4">
-                      <div className="flex justify-between items-start">
-                        <div className="flex items-start gap-3 flex-1">
-                          <Checkbox
-                            checked={selectedSlots.includes(slot.id)}
-                            onCheckedChange={() => handleSelectSlot(slot.id)}
-                            className="mt-1 w-5 h-5"
-                          />
-                          <div className="flex-1">
-                            <div className="flex items-center gap-2 mb-2">
-                              <Badge className={STATUS_COLORS[slot.status as keyof typeof STATUS_COLORS]}>
-                                {STATUS_LABELS[slot.status as keyof typeof STATUS_LABELS]}
-                              </Badge>
-                              <span className="font-medium">{slot.coachName}</span>
+          )}
+        </div>
+
+        {/* 時段列表 */}
+        {filteredSlots.length === 0 ? (
+          <div className="text-center py-8 text-gray-500">
+            {selectedCoach === "all" ? "沒有找到任何時段" : "該教練沒有時段資料"}
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {filteredSlots
+              .sort((a, b) => new Date(a.start_time).getTime() - new Date(b.start_time).getTime())
+              .map((slot) => (
+                <Card key={slot.id} className="border-l-4 border-l-blue-500">
+                  <CardContent className="pt-4 flex items-center gap-2">
+                    {batchMode && (
+                      <Checkbox
+                        checked={batchSelectedSlots.includes(slot.id)}
+                        onCheckedChange={() => handleBatchSelectSlot(slot.id)}
+                        className="w-5 h-5"
+                      />
+                    )}
+                    <div className="flex-1">
+                      <div className="flex items-start gap-3 flex-1">
+                        <Checkbox
+                          checked={selectedSlots.includes(slot.id)}
+                          onCheckedChange={() => handleSelectSlot(slot.id)}
+                          className="mt-1 w-5 h-5"
+                        />
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 mb-2">
+                            <Badge className={STATUS_COLORS[slot.status as keyof typeof STATUS_COLORS]}>
+                              {STATUS_LABELS[slot.status as keyof typeof STATUS_LABELS]}
+                            </Badge>
+                            <span className="font-medium">{slot.coachName}</span>
+                          </div>
+                          <div className="text-sm text-gray-600">
+                            <div className="flex items-center gap-2">
+                              <Calendar className="h-4 w-4" />
+                              {format(new Date(slot.start_time), "yyyy年MM月dd日 (EEEE)", { locale: zhTW })}
                             </div>
-                            <div className="text-sm text-gray-600">
-                              <div className="flex items-center gap-2">
-                                <Calendar className="h-4 w-4" />
-                                {format(new Date(slot.start_time), "yyyy年MM月dd日 (EEEE)", { locale: zhTW })}
-                              </div>
-                              <div className="flex items-center gap-2 mt-1">
-                                <Clock className="h-4 w-4" />
-                                {format(new Date(slot.start_time), "HH:mm")} -{" "}
-                                {format(new Date(slot.end_time), "HH:mm")}
-                                <span className="ml-2 text-gray-500">
-                                  (
-                                  {Math.round(
-                                    (new Date(slot.end_time).getTime() - new Date(slot.start_time).getTime()) /
-                                      (1000 * 60),
-                                  )}{" "}
-                                  分鐘)
-                                </span>
-                              </div>
+                            <div className="flex items-center gap-2 mt-1">
+                              <Clock className="h-4 w-4" />
+                              {format(new Date(slot.start_time), "HH:mm")} -{" "}
+                              {format(new Date(slot.end_time), "HH:mm")}
+                              <span className="ml-2 text-gray-500">
+                                (
+                                {Math.round(
+                                  (new Date(slot.end_time).getTime() - new Date(slot.start_time).getTime()) /
+                                    (1000 * 60),
+                                )}{" "}
+                                分鐘)
+                              </span>
                             </div>
                           </div>
                         </div>
-
-                        {/* 操作按鈕 */}
-                        <div className="flex gap-2">
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => handleEditSlot(slot)}
-                            className="text-blue-600 hover:text-blue-700"
-                          >
-                            <Edit className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => handleDeleteSlot(slot.id)}
-                            className="text-red-600 hover:text-red-700"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </div>
                       </div>
-                    </CardContent>
-                  </Card>
-                ))}
-            </div>
-          )}
 
-          {/* 統計資訊 */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6">
-            <Card>
-              <CardContent className="pt-4">
-                <div className="text-2xl font-bold text-green-600">
-                  {filteredSlots.filter((slot) => slot.status === "available").length}
-                </div>
-                <div className="text-sm text-gray-600">可用時段</div>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardContent className="pt-4">
-                <div className="text-2xl font-bold text-red-600">
-                  {filteredSlots.filter((slot) => slot.status === "booked").length}
-                </div>
-                <div className="text-sm text-gray-600">已預約</div>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardContent className="pt-4">
-                <div className="text-2xl font-bold text-orange-600">
-                  {filteredSlots.filter((slot) => slot.status === "pending").length}
-                </div>
-                <div className="text-sm text-gray-600">待確認</div>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardContent className="pt-4">
-                <div className="text-2xl font-bold text-gray-600">{filteredSlots.length}</div>
-                <div className="text-sm text-gray-600">總時段數</div>
-              </CardContent>
-            </Card>
+                      {/* 操作按鈕 */}
+                      <div className="flex gap-2">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleEditSlot(slot)}
+                          className="text-blue-600 hover:text-blue-700"
+                        >
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleDeleteSlot(slot.id)}
+                          className="text-red-600 hover:text-red-700"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
           </div>
+        )}
+
+        {/* 統計資訊 */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6">
+          <Card>
+            <CardContent className="pt-4">
+              <div className="text-2xl font-bold text-green-600">
+                {filteredSlots.filter((slot) => slot.status === "available").length}
+              </div>
+              <div className="text-sm text-gray-600">可用時段</div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="pt-4">
+              <div className="text-2xl font-bold text-red-600">
+                {filteredSlots.filter((slot) => slot.status === "booked").length}
+              </div>
+              <div className="text-sm text-gray-600">已預約</div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="pt-4">
+              <div className="text-2xl font-bold text-orange-600">
+                {filteredSlots.filter((slot) => slot.status === "pending").length}
+              </div>
+              <div className="text-sm text-gray-600">待確認</div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="pt-4">
+              <div className="text-2xl font-bold text-gray-600">{filteredSlots.length}</div>
+              <div className="text-sm text-gray-600">總時段數</div>
+            </CardContent>
+          </Card>
         </div>
       </CardContent>
 
