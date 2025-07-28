@@ -143,7 +143,7 @@ export default function LoginPage() {
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
           <CardTitle className="text-2xl font-bold" style={{ color: "#2C2C2C" }}>
-            教練派案系統123
+            教練派案系統
           </CardTitle>
           <CardDescription style={{ color: "#666666" }}>請選擇您的身份登入系統</CardDescription>
         </CardHeader>
