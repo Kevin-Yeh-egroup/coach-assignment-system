@@ -53,17 +53,21 @@ export default function CoachDashboard() {
 
   const handleQuickAction = (action: string) => {
     switch (action) {
-      case "add-time":
+      case "add-timeslot":
         setActiveTab("time")
         break
-      case "view-assignments":
+      case "calendar":
+        setActiveTab("time")
+        break
+      case "assignments":
         setActiveTab("assignments")
         break
-      case "today-schedule":
-        setActiveTab("assignments")
-        break
-      case "update-profile":
-        setActiveTab("profile")
+      case "export":
+        setActiveTab("history")
+        // 可額外觸發匯出事件
+        setTimeout(() => {
+          window.dispatchEvent(new CustomEvent("exportData"))
+        }, 100)
         break
       default:
         console.log("未知操作:", action)
@@ -103,9 +107,13 @@ export default function CoachDashboard() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center gap-4">
-              <h1 className="text-xl font-semibold" style={{ color: "#2C2C2C" }}>
+              <button
+                onClick={() => router.push("/")}
+                className="text-xl font-semibold focus:outline-none hover:underline"
+                style={{ color: "#2C2C2C", background: "none", border: "none", padding: 0, cursor: "pointer" }}
+              >
                 教練派案系統
-              </h1>
+              </button>
               <span className="ml-4" style={{ color: "#666666" }}>
                 歡迎，{user.name}
               </span>
@@ -236,7 +244,7 @@ export default function CoachDashboard() {
 
         {/* 通知中心 - 整合在主介面底部 */}
         <div className="mt-8">
-          <NotificationCenter userType="coach" userId={user.id} />
+          <NotificationCenter />
         </div>
       </main>
     </div>

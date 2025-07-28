@@ -377,42 +377,22 @@ export default function TimeManagement({ coachId }: TimeManagementProps) {
               <CardDescription>管理您的可用時間安排，點擊行事曆日期可快速新增時段</CardDescription>
             </div>
             <div className="flex gap-2">
+              {/* 移除 Popover 結構，直接渲染按鈕 */}
               <ExportButton data={getTimeSlotExportData()} disabled={timeSlots.length === 0} />
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button style={{ backgroundColor: "#E31E24", color: "white" }}>
-                    <Plus className="h-4 w-4 mr-2" />
-                    新增時段
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-48">
-                  <div className="space-y-2">
-                    <Button
-                      variant="ghost"
-                      className="w-full justify-start"
-                      onClick={() => {
-                        handleAddButtonClick()
-                      }}
-                    >
-                      新增單次時段
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      className="w-full justify-start"
-                      onClick={() => handleAddModeChange("recurring")}
-                    >
-                      重複時段設定
-                    </Button>
-                  </div>
-                </PopoverContent>
-              </Popover>
+              <Button
+                style={{ backgroundColor: "#E31E24", color: "white" }}
+                onClick={handleAddButtonClick}
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                新增時段
+              </Button>
             </div>
           </div>
         </CardHeader>
         <CardContent>
           {showAddForm && (
-            <Card className="mb-6">
-              <CardHeader>
+            <Card className="mb-6 bg-white">
+              <CardHeader className="bg-white">
                 <div className="flex justify-between items-center">
                   <CardTitle className="text-lg">{editingSlot ? "編輯時間段" : "新增時間段"}</CardTitle>
                   {!editingSlot && (
@@ -423,7 +403,7 @@ export default function TimeManagement({ coachId }: TimeManagementProps) {
                       <SelectTrigger className="w-40">
                         <SelectValue />
                       </SelectTrigger>
-                      <SelectContent>
+                      <SelectContent className="bg-white shadow-lg z-50">
                         <SelectItem value="single">單次時段</SelectItem>
                         <SelectItem value="recurring">重複時段</SelectItem>
                       </SelectContent>
@@ -431,7 +411,7 @@ export default function TimeManagement({ coachId }: TimeManagementProps) {
                   )}
                 </div>
               </CardHeader>
-              <CardContent className="space-y-4">
+              <CardContent className="space-y-4 bg-white">
                 <div className="space-y-2">
                   <Label>日期</Label>
                   <Popover>
@@ -441,7 +421,7 @@ export default function TimeManagement({ coachId }: TimeManagementProps) {
                         {selectedDate ? format(selectedDate, "yyyy年MM月dd日", { locale: zhTW }) : "選擇日期"}
                       </Button>
                     </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0">
+                    <PopoverContent className="w-auto p-0 bg-white shadow-lg z-50">
                       <Calendar mode="single" selected={selectedDate} onSelect={setSelectedDate} initialFocus />
                     </PopoverContent>
                   </Popover>
@@ -552,7 +532,7 @@ export default function TimeManagement({ coachId }: TimeManagementProps) {
                         <div className="text-xs text-gray-500 text-center">+{daySlots.length - 3} 更多</div>
                       )}
                       {daySlots.length === 0 && (
-                        <div className="text-xs text-gray-400 text-center opacity-0 hover:opacity-100 transition-opacity">
+                        <div className="text-xs text-gray-400 text-center">
                           點擊新增
                         </div>
                       )}

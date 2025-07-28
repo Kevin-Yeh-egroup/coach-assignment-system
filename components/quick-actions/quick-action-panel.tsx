@@ -5,8 +5,41 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Calendar, Clock, Users, AlertCircle, Plus, FileText, TrendingUp, CheckCircle } from "lucide-react"
+import type { FC } from "react"
 
-export default function QuickActionPanel() {
+interface QuickActionPanelProps {
+  onAction?: (action: string) => void
+  userType?: string
+}
+
+const quickActions = [
+  {
+    title: "新增時段",
+    icon: <Plus className="h-4 w-4" />,
+    action: "add-timeslot",
+    color: "bg-blue-500",
+  },
+  {
+    title: "查看行程",
+    icon: <Calendar className="h-4 w-4" />,
+    action: "calendar",
+    color: "bg-green-500",
+  },
+  {
+    title: "派案管理",
+    icon: <Users className="h-4 w-4" />,
+    action: "assignments",
+    color: "bg-purple-500",
+  },
+  {
+    title: "匯出報表",
+    icon: <FileText className="h-4 w-4" />,
+    action: "export",
+    color: "bg-orange-500",
+  },
+]
+
+const QuickActionPanel: FC<QuickActionPanelProps> = ({ onAction, userType }) => {
   const [stats, setStats] = useState({
     pendingAssignments: 0,
     todaySchedule: 0,
@@ -60,45 +93,6 @@ export default function QuickActionPanel() {
     // 載入最近活動（目前為空）
     setRecentActivities([])
   }
-
-  const quickActions = [
-    {
-      title: "新增時段",
-      icon: <Plus className="h-4 w-4" />,
-      action: () => {
-        // 觸發新增時段功能
-        window.dispatchEvent(new CustomEvent("openAddTimeSlot"))
-      },
-      color: "bg-blue-500",
-    },
-    {
-      title: "查看行程",
-      icon: <Calendar className="h-4 w-4" />,
-      action: () => {
-        // 切換到行程檢視
-        window.dispatchEvent(new CustomEvent("switchToCalendar"))
-      },
-      color: "bg-green-500",
-    },
-    {
-      title: "派案管理",
-      icon: <Users className="h-4 w-4" />,
-      action: () => {
-        // 切換到派案管理
-        window.dispatchEvent(new CustomEvent("switchToAssignments"))
-      },
-      color: "bg-purple-500",
-    },
-    {
-      title: "匯出報表",
-      icon: <FileText className="h-4 w-4" />,
-      action: () => {
-        // 觸發匯出功能
-        window.dispatchEvent(new CustomEvent("exportData"))
-      },
-      color: "bg-orange-500",
-    },
-  ]
 
   return (
     <div className="space-y-6">
@@ -166,7 +160,7 @@ export default function QuickActionPanel() {
             {quickActions.map((action, index) => (
               <Button
                 key={index}
-                onClick={action.action}
+                onClick={() => onAction?.(action.action)}
                 className={`${action.color} hover:opacity-90 text-white h-16 flex flex-col items-center justify-center gap-1`}
               >
                 {action.icon}
@@ -247,3 +241,5 @@ export default function QuickActionPanel() {
     </div>
   )
 }
+
+export default QuickActionPanel

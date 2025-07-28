@@ -52,20 +52,20 @@ export default function AdminDashboard() {
 
   const handleQuickAction = (action: string) => {
     switch (action) {
-      case "create-assignment":
+      case "add-timeslot":
+        setActiveTab("calendar")
+        break
+      case "calendar":
+        setActiveTab("calendar")
+        break
+      case "assignments":
         setActiveTab("assignments")
         break
-      case "urgent-cases":
-        setActiveTab("assignments")
-        break
-      case "coach-management":
-        setActiveTab("coaches")
-        break
-      case "system-stats":
+      case "export":
         setActiveTab("reports")
-        break
-      case "system-settings":
-        setActiveTab("system")
+        setTimeout(() => {
+          window.dispatchEvent(new CustomEvent("exportData"))
+        }, 100)
         break
       default:
         console.log("未知操作:", action)
@@ -188,7 +188,7 @@ export default function AdminDashboard() {
 
         {/* 通知中心 - 整合在主介面底部 */}
         <div className="mt-8">
-          <NotificationCenter userType="admin" userId={user.id} />
+          <NotificationCenter />
         </div>
       </main>
     </div>

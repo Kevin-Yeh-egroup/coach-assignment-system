@@ -40,55 +40,55 @@ export default function ImportExportPanel() {
   const [conflictResolutions, setConflictResolutions] = useState<ConflictResolution>({})
   const [pendingImportData, setPendingImportData] = useState<any[]>([])
 
-  const handleFileImport = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0]
-    if (!file) return
+  // 修改 Input 為 multiple 並只允許 .csv
+  const handleMultiFileImport = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = event.target.files
+    if (!files || files.length === 0) return
 
     setImporting(true)
     try {
-      const text = await file.text()
-      const lines = text.split("\n").filter((line) => line.trim())
-
-      if (lines.length < 2) {
-        alert("檔案格式錯誤：至少需要標題行和一行資料")
-        return
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i]
+        // 根據檔名自動判斷類型
+        let type: string = importType
+        if (file.name.includes("教練")) type = "coaches"
+        else if (file.name.includes("時段")) type = "timeslots"
+        else if (file.name.includes("派案")) type = "assignments"
+        // 允許手動選擇類型時仍以UI為主
+        await handleFileImportSingle(file, type)
       }
-
-      const headers = lines[0].split(",").map((h) => h.replace(/"/g, "").trim())
-      const rows = lines.slice(1).map((line) => line.split(",").map((cell) => cell.replace(/"/g, "").trim()))
-
-      console.log("匯入類型:", importType)
-      console.log("標題:", headers)
-      console.log("資料:", rows)
-
-      // 檢查重複資料和缺失教練
-      const { cleanData, duplicateData, missingCoachData } = await checkDuplicatesAndMissingCoaches(rows, importType)
-
-      if (missingCoachData.length > 0 && importType === "timeslots") {
-        setMissingCoaches(missingCoachData)
-        setPendingImportData(rows)
-        setShowMissingCoachDialog(true)
-        setImporting(false)
-        return
-      }
-
-      if (duplicateData.length > 0) {
-        setDuplicates(duplicateData)
-        setPendingImportData(rows)
-        setShowConflictDialog(true)
-        setImporting(false)
-        return
-      }
-
-      // 沒有重複資料，直接匯入
-      await performImport(rows, importType)
     } catch (error) {
-      console.error("匯入失敗:", error)
-      alert("匯入失敗，請檢查檔案格式")
+      alert("批次匯入失敗，請檢查檔案格式")
     } finally {
       setImporting(false)
       event.target.value = ""
     }
+  }
+  // 單檔匯入邏輯抽出
+  const handleFileImportSingle = async (file: File, type: string) => {
+    const text = await file.text()
+    const lines = text.split("\n").filter((line) => line.trim()) as string[]
+    if (lines.length < 2) {
+      alert(`${file.name} 檔案格式錯誤：至少需要標題行和一行資料`)
+      return
+    }
+    const headers = lines[0].split(",").map((h: string) => h.replace(/"/g, "").trim())
+    const rows = (lines.slice(1) as string[]).map((line) => (line as string).split(",").map((cell) => (cell as string).replace(/"/g, "").trim())) as string[][]
+    // 檢查重複與缺失教練
+    const { cleanData, duplicateData, missingCoachData } = await checkDuplicatesAndMissingCoaches(rows, type)
+    if (missingCoachData.length > 0 && type === "timeslots") {
+      setMissingCoaches(missingCoachData)
+      setPendingImportData(rows)
+      setShowMissingCoachDialog(true)
+      return
+    }
+    if (duplicateData.length > 0) {
+      setDuplicates(duplicateData)
+      setPendingImportData(rows)
+      setShowConflictDialog(true)
+      return
+    }
+    await performImport(rows, type)
   }
 
   const checkDuplicatesAndMissingCoaches = async (rows: string[][], type: string) => {
@@ -619,8 +619,9 @@ export default function ImportExportPanel() {
                 <Input
                   id="import-file"
                   type="file"
-                  accept=".csv,.xlsx,.xls"
-                  onChange={handleFileImport}
+                  accept=".csv"
+                  multiple
+                  onChange={handleMultiFileImport}
                   disabled={importing}
                   className="hidden"
                 />
@@ -643,7 +644,7 @@ export default function ImportExportPanel() {
                   )}
                 </Button>
               </div>
-              <p className="text-xs text-gray-500 mt-2">支援 CSV、Excel 格式，系統會自動檢測重複資料和缺失教練</p>
+              <p className="text-xs text-gray-500 mt-2">僅支援 CSV 格式，可同時選擇多個檔案，系統會自動檢測重複資料和缺失教練</p>
             </div>
           </div>
         </div>
@@ -691,7 +692,7 @@ export default function ImportExportPanel() {
           <ul className="text-sm text-blue-700 space-y-1">
             <li>• 請先下載對應的範本檔案</li>
             <li>• 按照範本格式填寫資料</li>
-            <li>• 支援 CSV 和 Excel 格式</li>
+            <li>• 僅支援 CSV 格式，可同時選擇多個檔案</li>
             <li>• 系統會自動檢測重複資料並提供處理選項</li>
             <li>• 匯入時段時，若教練不存在會詢問是否新增</li>
             <li>• 匯入資料不會覆蓋現有資料，而是追加新增</li>
