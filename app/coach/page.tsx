@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { LogOut, User, Clock, Calendar, FileText } from "lucide-react"
+import { LogOut, User, Clock, Calendar, FileText, ArrowLeft } from "lucide-react"
 import CoachProfile from "@/components/coach/coach-profile"
 import TimeManagement from "@/components/coach/time-management"
 import AssignmentManagement from "@/components/coach/assignment-management"
@@ -119,6 +119,20 @@ export default function CoachDashboard() {
               </span>
             </div>
             <div className="flex items-center gap-4">
+              <Button
+                onClick={() => router.push("/")}
+                variant="outline"
+                size="sm"
+                className="flex items-center gap-2 bg-transparent hover:bg-gray-50"
+                style={{
+                  backgroundColor: "transparent",
+                  borderColor: "#666666",
+                  color: "#666666",
+                }}
+              >
+                <ArrowLeft className="h-4 w-4" />
+                返回
+              </Button>
               <GlobalSearch userType="coach" onResultClick={handleSearchResult} />
               <Button
                 onClick={handleLogout}

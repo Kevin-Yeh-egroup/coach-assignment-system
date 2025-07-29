@@ -10,7 +10,7 @@ import { Calendar } from "@/components/ui/calendar"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Checkbox } from "@/components/ui/checkbox"
-import { CalendarIcon, Plus, Edit, Trash2, Clock, ChevronLeft, ChevronRight } from "lucide-react"
+import { CalendarIcon, Plus, Edit, Trash2, Clock, ChevronLeft, ChevronRight, Upload } from "lucide-react"
 import {
   format,
   startOfMonth,
@@ -356,9 +356,19 @@ export default function TimeManagement({ coachId }: TimeManagementProps) {
     }
   }
 
-  const formatDateTimeForExport = (dateTime: string) => {
+  // 格式化時間為 2025/8/9 09:00:00 AM 格式
+  const formatDateTimeForExport = (dateTime: string): string => {
     const date = new Date(dateTime)
-    return format(date, "yyyy-MM-dd HH:mm")
+    const year = date.getFullYear()
+    const month = date.getMonth() + 1
+    const day = date.getDate()
+    const hours = date.getHours()
+    const minutes = date.getMinutes()
+    const ampm = hours >= 12 ? 'PM' : 'AM'
+    const displayHours = hours % 12 || 12
+    const displayMinutes = minutes.toString().padStart(2, '0')
+    
+    return `${year}/${month}/${day} ${displayHours}:${displayMinutes}:00 ${ampm}`
   }
 
   const getTimeSlotExportData = (): ExportData => {
@@ -369,13 +379,12 @@ export default function TimeManagement({ coachId }: TimeManagementProps) {
     const coachName = userData.name || coachProfile.name || "未知教練"
 
     return {
-      headers: ["教練姓名", "開始時間", "結束時間", "狀態", "時段ID"],
+      headers: ["教練姓名", "開始時間", "結束時間", "狀態"],
       rows: timeSlots.map((slot) => [
         coachName,
         formatDateTimeForExport(slot.start_time),
         formatDateTimeForExport(slot.end_time),
         slot.status,
-        slot.id.toString(),
       ]),
       filename: `${coachName}_時段資料_${new Date().toISOString().split("T")[0]}`,
     }
@@ -398,6 +407,103 @@ export default function TimeManagement({ coachId }: TimeManagementProps) {
 
   const navigateMonth = (direction: "prev" | "next") => {
     setCurrentDate((prev) => (direction === "prev" ? subMonths(prev, 1) : addMonths(prev, 1)))
+  }
+
+  // 修正時段匯入功能
+  const handleImportTimeslots = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    if (!file) return
+
+    try {
+      const text = await file.text()
+      const lines = text.split("\n").filter((line) => line.trim())
+
+      if (lines.length < 2) {
+        alert("檔案格式錯誤：至少需要標題行和一行資料")
+        return
+      }
+
+      const headers = lines[0].split(",").map((h) => h.replace(/"/g, "").trim())
+      const rows = lines.slice(1).map((line) => line.split(",").map((cell) => cell.replace(/"/g, "").trim()))
+
+      const newSlots: TimeSlot[] = []
+
+      rows.forEach((row, index) => {
+        if (row.length >= 4) {
+          const coachName = row[0]?.trim()
+          const startTimeStr = row[1]?.trim()
+          const endTimeStr = row[2]?.trim()
+          const status = row[3]?.trim() || "available"
+
+          if (startTimeStr && endTimeStr) {
+            try {
+              // 解析完整日期時間格式：2025/8/9 09:00:00 AM
+              const startDateTime = new Date(startTimeStr)
+              const endDateTime = new Date(endTimeStr)
+
+              if (isNaN(startDateTime.getTime()) || isNaN(endDateTime.getTime())) {
+                console.error(`第 ${index + 1} 行日期格式錯誤`)
+                return
+              }
+
+              if (endDateTime > startDateTime) {
+                newSlots.push({
+                  id: Date.now() + index,
+                  start_time: startDateTime.toISOString(),
+                  end_time: endDateTime.toISOString(),
+                  status: status === "assigned" ? "assigned" : "available",
+                })
+              }
+            } catch (error) {
+              console.error(`第 ${index + 1} 行日期格式錯誤:`, error)
+            }
+          }
+        } else if (row.length >= 2) {
+          // 支援舊格式：開始時間,結束時間
+          const startTime = row[0]?.trim()
+          const endTime = row[1]?.trim()
+
+          if (startTime && endTime) {
+            try {
+              const today = new Date()
+              const startDateTime = new Date(today)
+              const endDateTime = new Date(today)
+
+              const [startHour, startMin] = startTime.split(":").map(Number)
+              const [endHour, endMin] = endTime.split(":").map(Number)
+
+              startDateTime.setHours(startHour, startMin, 0, 0)
+              endDateTime.setHours(endHour, endMin, 0, 0)
+
+              if (endDateTime > startDateTime) {
+                newSlots.push({
+                  id: Date.now() + index,
+                  start_time: startDateTime.toISOString(),
+                  end_time: endDateTime.toISOString(),
+                  status: "available",
+                })
+              }
+            } catch (error) {
+              console.error(`第 ${index + 1} 行時間格式錯誤:`, error)
+            }
+          }
+        }
+      })
+
+      if (newSlots.length > 0) {
+        const updatedSlots = [...timeSlots, ...newSlots]
+        setTimeSlots(updatedSlots)
+        saveTimeSlots(updatedSlots)
+        alert(`成功匯入 ${newSlots.length} 個時段！`)
+      } else {
+        alert("沒有有效的時段資料可匯入")
+      }
+    } catch (error) {
+      console.error("匯入失敗:", error)
+      alert("匯入失敗，請檢查檔案格式")
+    } finally {
+      event.target.value = ""
+    }
   }
 
   if (loading) {
@@ -427,6 +533,21 @@ export default function TimeManagement({ coachId }: TimeManagementProps) {
             <div className="flex gap-2">
               {/* 移除 Popover 結構，直接渲染按鈕 */}
               <ExportButton data={getTimeSlotExportData()} disabled={timeSlots.length === 0} />
+              <Button
+                variant="outline"
+                onClick={() => document.getElementById("import-timeslots")?.click()}
+                className="flex items-center gap-2"
+              >
+                <Upload className="h-4 w-4" />
+                匯入時段
+              </Button>
+              <input
+                id="import-timeslots"
+                type="file"
+                accept=".csv"
+                onChange={handleImportTimeslots}
+                className="hidden"
+              />
               <Button
                 style={{ backgroundColor: "#E31E24", color: "white" }}
                 onClick={handleAddButtonClick}

@@ -255,18 +255,30 @@ export default function CoachManagement() {
 
   const filteredCoaches = getFilteredCoaches()
 
+  const formatDateTimeForExport = (dateTime: string): string => {
+    const date = new Date(dateTime)
+    const year = date.getFullYear()
+    const month = date.getMonth() + 1
+    const day = date.getDate()
+    const hours = date.getHours()
+    const minutes = date.getMinutes()
+    const ampm = hours >= 12 ? 'PM' : 'AM'
+    const displayHours = hours % 12 || 12
+    const displayMinutes = minutes.toString().padStart(2, '0')
+    
+    return `${year}/${month}/${day} ${displayHours}:${displayMinutes}:00 ${ampm}`
+  }
+
   const getExportData = (): ExportData => {
     return {
-      headers: ["教練姓名", "電子郵件", "電話", "專業領域", "狀態", "建立時間", "最後登入", "總派案數"],
+      headers: ["姓名", "簡歷", "專業領域1", "專業領域2", "專業領域3", "狀態"],
       rows: filteredCoaches.map((coach) => [
         coach.name,
-        coach.email || "",
-        coach.phone || "",
-        coach.specialties.join(", "),
-        coach.status === "active" ? "啟用" : "停用",
-        formatDateTimeForExport(coach.created_at),
-        coach.last_login ? formatDateTimeForExport(coach.last_login) : "從未登入",
-        (coach.total_assignments || 0).toString(),
+        coach.bio || "",
+        coach.specialties[0] || "",
+        coach.specialties[1] || "",
+        coach.specialties[2] || "",
+        coach.status === "active" ? "active" : "inactive",
       ]),
       filename: `教練管理清單_${new Date().toISOString().split("T")[0]}`,
     }

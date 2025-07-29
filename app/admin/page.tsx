@@ -4,7 +4,7 @@ import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { LogOut } from "lucide-react"
+import { LogOut, ArrowLeft } from "lucide-react"
 import DashboardStats from "@/components/admin/dashboard-stats"
 import CalendarView from "@/components/admin/calendar-view"
 import CoachManagement from "@/components/admin/coach-management"
@@ -116,6 +116,20 @@ export default function AdminDashboard() {
               </span>
             </div>
             <div className="flex items-center gap-4">
+              <Button
+                onClick={() => router.push("/")}
+                variant="outline"
+                size="sm"
+                className="flex items-center gap-2 bg-transparent hover:bg-gray-50"
+                style={{
+                  backgroundColor: "transparent",
+                  borderColor: "#666666",
+                  color: "#666666",
+                }}
+              >
+                <ArrowLeft className="h-4 w-4" />
+                返回
+              </Button>
               <GlobalSearch userType="admin" onResultClick={handleSearchResult} />
               <Button
                 onClick={handleLogout}

@@ -420,20 +420,29 @@ export default function DataManagement() {
     }
   }
 
-  const formatDateTimeForExport = (dateTime: string) => {
-    return format(new Date(dateTime), "yyyy/MM/dd HH:mm", { locale: zhTW })
+  const formatDateTimeForExport = (dateTime: string): string => {
+    const date = new Date(dateTime)
+    const year = date.getFullYear()
+    const month = date.getMonth() + 1
+    const day = date.getDate()
+    const hours = date.getHours()
+    const minutes = date.getMinutes()
+    const ampm = hours >= 12 ? 'PM' : 'AM'
+    const displayHours = hours % 12 || 12
+    const displayMinutes = minutes.toString().padStart(2, '0')
+    
+    return `${year}/${month}/${day} ${displayHours}:${displayMinutes}:00 ${ampm}`
   }
 
   const getAvailableTimeSlotsExportData = (): ExportData => {
     const filteredSlots = getFilteredTimeSlots()
     return {
-      headers: ["教練姓名", "開始時間", "結束時間", "狀態", "時段ID"],
+      headers: ["教練姓名", "開始時間", "結束時間", "狀態"],
       rows: filteredSlots.map((slot) => [
         slot.coachName,
         formatDateTimeForExport(slot.start_time),
         formatDateTimeForExport(slot.end_time),
         STATUS_LABELS[slot.status as keyof typeof STATUS_LABELS] || slot.status,
-        slot.id.toString(),
       ]),
       filename: `可用時段資料_${new Date().toISOString().split("T")[0]}`,
     }

@@ -273,6 +273,20 @@ export default function AssignmentOperations() {
     return matchesSearch && matchesStatus && matchesPriority
   })
 
+  const formatDateTimeForExport = (dateTime: string): string => {
+    const date = new Date(dateTime)
+    const year = date.getFullYear()
+    const month = date.getMonth() + 1
+    const day = date.getDate()
+    const hours = date.getHours()
+    const minutes = date.getMinutes()
+    const ampm = hours >= 12 ? 'PM' : 'AM'
+    const displayHours = hours % 12 || 12
+    const displayMinutes = minutes.toString().padStart(2, '0')
+    
+    return `${year}/${month}/${day} ${displayHours}:${displayMinutes}:00 ${ampm}`
+  }
+
   const getAssignmentExportData = (): ExportData => {
     return {
       headers: ["教練姓名", "申請人", "聯絡方式", "諮詢議題", "開始時間", "結束時間", "優先級"],

@@ -96,19 +96,22 @@ export function formatDateTime(dateString: string): string {
 
 export function formatDateTimeForExport(dateString: string): string {
   try {
-    // 格式化為 "2024-07-16 14:00" 格式
+    // 格式化為 "2025/8/9 09:00:00 AM" 格式
     const date = new Date(dateString)
     if (isNaN(date.getTime())) {
       return "無效日期"
     }
 
     const year = date.getFullYear()
-    const month = String(date.getMonth() + 1).padStart(2, "0")
-    const day = String(date.getDate()).padStart(2, "0")
-    const hours = String(date.getHours()).padStart(2, "0")
-    const minutes = String(date.getMinutes()).padStart(2, "0")
+    const month = date.getMonth() + 1
+    const day = date.getDate()
+    const hours = date.getHours()
+    const minutes = date.getMinutes()
+    const ampm = hours >= 12 ? 'PM' : 'AM'
+    const displayHours = hours % 12 || 12
+    const displayMinutes = minutes.toString().padStart(2, '0')
 
-    return `${year}-${month}-${day} ${hours}:${minutes}`
+    return `${year}/${month}/${day} ${displayHours}:${displayMinutes}:00 ${ampm}`
   } catch (error) {
     console.error("匯出日期格式化錯誤:", error)
     return "格式錯誤"

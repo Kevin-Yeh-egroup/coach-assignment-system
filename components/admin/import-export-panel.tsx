@@ -525,18 +525,25 @@ export default function ImportExportPanel() {
   const downloadTemplate = (type: string) => {
     const templates = {
       coaches: {
-        headers: ["姓名", "簡歷", "專業領域1", "專業領域2", "專業領域3", "狀態", "電子郵件", "電話"],
-        rows: [],
+        headers: ["姓名", "簡歷", "專業領域1", "專業領域2", "專業領域3", "狀態"],
+        rows: [
+          ["葉先博", "資深職涯教練，擁有10年輔導經驗", "職涯規劃", "領導力發展", "團隊管理", "active"],
+        ],
         filename: "教練資料匯入範本",
       },
       timeslots: {
         headers: ["教練姓名", "開始時間", "結束時間", "狀態"],
-        rows: [],
+        rows: [
+          ["葉先博", "2025/8/9 09:00:00 AM", "2025/8/9 10:00:00 AM", "available"],
+          ["葉先博", "2025/8/9 14:00:00 PM", "2025/8/9 15:30:00 PM", "assigned"],
+        ],
         filename: "時段資料匯入範本",
       },
       assignments: {
         headers: ["教練姓名", "申請人", "聯絡方式", "諮詢議題", "開始時間", "結束時間", "優先級"],
-        rows: [],
+        rows: [
+          ["葉先博", "張小明", "0912345678", "職涯規劃", "2025/8/9 09:00:00 AM", "2025/8/9 10:00:00 AM", "medium"],
+        ],
         filename: "派案資料匯入範本",
       },
     }

@@ -60,6 +60,20 @@ export default function AssignmentList({ coachId }: AssignmentListProps) {
     setFilteredAssignments(filtered)
   }
 
+  const formatDateTimeForExport = (dateTime: string): string => {
+    const date = new Date(dateTime)
+    const year = date.getFullYear()
+    const month = date.getMonth() + 1
+    const day = date.getDate()
+    const hours = date.getHours()
+    const minutes = date.getMinutes()
+    const ampm = hours >= 12 ? 'PM' : 'AM'
+    const displayHours = hours % 12 || 12
+    const displayMinutes = minutes.toString().padStart(2, '0')
+    
+    return `${year}/${month}/${day} ${displayHours}:${displayMinutes}:00 ${ampm}`
+  }
+
   const getExportData = (): ExportData => {
     // 從localStorage獲取教練資料
     const coachData = JSON.parse(localStorage.getItem(`coach_${coachId}_profile`) || '{"name": "未知教練"}')

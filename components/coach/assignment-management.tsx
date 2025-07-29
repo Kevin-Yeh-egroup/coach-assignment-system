@@ -136,21 +136,34 @@ export default function AssignmentManagement({ coachId }: AssignmentManagementPr
     })
   }
 
+  const formatDateTimeForExport = (dateTime: string): string => {
+    const date = new Date(dateTime)
+    const year = date.getFullYear()
+    const month = date.getMonth() + 1
+    const day = date.getDate()
+    const hours = date.getHours()
+    const minutes = date.getMinutes()
+    const ampm = hours >= 12 ? 'PM' : 'AM'
+    const displayHours = hours % 12 || 12
+    const displayMinutes = minutes.toString().padStart(2, '0')
+    
+    return `${year}/${month}/${day} ${displayHours}:${displayMinutes}:00 ${ampm}`
+  }
+
   const getAssignmentExportData = (): ExportData => {
     // 從localStorage獲取教練資料
     const coachData = JSON.parse(localStorage.getItem(`coach_${coachId}_profile`) || '{"name": "未知教練"}')
 
     return {
-      headers: ["派案編號", "申請人", "聯絡方式", "諮詢議題", "狀態", "優先級", "時間", "建立時間"],
+      headers: ["教練姓名", "申請人", "聯絡方式", "諮詢議題", "開始時間", "結束時間", "優先級"],
       rows: assignments.map((assignment) => [
-        `#${assignment.id}`,
+        coachData.name,
         assignment.client_name,
         assignment.client_contact,
         assignment.topic,
-        formatStatus(assignment.status),
+        formatDateTimeForExport(assignment.start_time),
+        formatDateTimeForExport(assignment.end_time),
         getPriorityLabel(assignment.priority),
-        formatDateTime(assignment.start_time),
-        formatDateTime(assignment.created_at),
       ]),
       filename: `${coachData.name}_派案管理_${new Date().toISOString().split("T")[0]}`,
     }
